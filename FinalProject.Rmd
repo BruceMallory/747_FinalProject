@@ -1,0 +1,333 @@
+---
+title: "Final Project"
+author: "Bruce Mallory"
+date: "4/10/2021"
+output: pdf_document
+---
+
+```{r setup, message=FALSE, warning=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+library(dplyr)
+library(stringr)
+library(tidytext)
+library(lubridate)
+library(ggplot2)
+library(tidyr)
+library(sentimentr)
+```
+
+## A. Downloading Data
+
+In the 4.19 email from Ken Liss there are directions for using Nexus/Uni.  
+
+I've narrowed by:
+  "For The People Act",
+  News,
+  English,
+  The New York Times,
+  dates
+  
+Then I went through the list that Nexis/Uni generated and removed the duplicate articles.  For the New York Times (and I imagine many other news organizations) they publish slightly modified versions on articles in different newspaper releases.  Many times, I found that it was just the title that had changed when the article was republished.
+
+For each of the .RTF files I converted them to .txt files (so I could modify them), added Document-Type where it was missing (mostly for National Desk articles that weren't given a "Document-Type: New" tag), removed the explanatory verbage at the end of the article (e.g. PHOTO captions, author descriptions, live links), removed a summary article of Late Night scripts, removed a daily briefing (which summarized the day's articles), and remove duplicate articles that had gotten through my Nexis/Uni filtering.
+
+## B1. Importing and Measuring Data: functions
+
+```{r}
+#Function to load a chunk of articles and collect word frequencies.
+load_articles <- function(file_name) {
+  Files <- read.delim(file_name, header=FALSE)
+  Articles <- as.data.frame(Files)
+  colnames(Articles) <- c("line")
+  These_articles <- data.frame(
+    Article = integer(),
+    Type = character(),
+    Date = as_datetime(character()),
+    title = character(),
+    word = character(),
+    n = integer(),
+    proportion = integer()
+  )
+  #These variables strings are collecting the lines within each article that will be relevant for my collecting the article words to analyze.  I've marked where the article title is, where the body starts and ends and where the date is.  Additionally I've marked where the type of article is specified, because as I load articles I want to ignore the opinion articles.
+  
+  #x is a counter to help me number each of the articles that I'm collecting - it's a local variable.  y is the global variable that is seeded each time this function is called
+  x <- y
+  Find_Bodys <- str_locate(Articles$line, "Body")
+  StartHere <- which(Find_Bodys[, 1] != "NA") + 1
+  Find_Classifications <- str_locate(Articles$line, "Classification")
+  EndHere <- which(Find_Classifications[, 1] != "NA") - 1
+  #Titles are always one line after an "End of Document"
+  Find_EndDocs <- str_locate(Articles$line, "End of Document")
+  EndDocs <- which(Find_EndDocs[, 1] != "NA") + 1
+  Titles <- c(1, EndDocs)
+  Titles <- Titles[1:length(Titles) - 1]
+  Find_Sections <- str_locate(Articles$line, "Document-Type:")
+  Type <- which(Find_Sections[, 1] != "NA")
+  Find_Dates <- str_locate(Articles$line, "Load-Date:")
+  DateLine <- which(Find_Dates[, 1] != "NA")
+  
+  for (i in 1:length(Titles)) {
+      Date  <-
+        str_split_fixed((Articles[DateLine[i], "line"]), ":", n = 2)[, 2]  %>%
+        str_trim() %>%
+        parse_date_time(orders = "mdy")
+      the_type <- 
+         str_split_fixed((Articles[Type[i], "line"]), ":", n = 2)[, 2]  %>%
+        str_trim()
+      the_title <- slice(Articles, Titles[i])
+      the_body <- slice(Articles, StartHere[i]:EndHere[i])
+      
+      This_article <- rbind(the_title, the_body) %>%
+        unnest_tokens(word, line) %>%
+        anti_join(stop_words, by = "word") %>%
+        count(word, sort = TRUE) %>%
+        mutate(Article = x, 
+               Type = the_type, 
+               Date, 
+               title = as.character(the_title$line),
+               proportion = n / sum(n)) %>%
+        select(Article, Type, Date, title, everything())
+      These_articles <- rbind(These_articles, This_article)
+      x <- x + 1
+  }
+  return(These_articles)
+}
+
+# Function to collect sentiment scores from a single article
+measure_sentiment <- function(article_num) {
+  matched_words_afinn <-
+    filter(Article_wdfrq, Article == article_num) %>%
+    inner_join(get_sentiments("afinn")) %>%
+    mutate(sentiment = n * value)
+  
+  matched_words_bing <-
+    filter(Article_wdfrq, Article == article_num) %>%
+    inner_join(get_sentiments("bing")) %>%
+    spread(sentiment, n , fill = 0) %>%
+    mutate(sentiment = positive - negative) %>%
+    filter(word != "trump")
+  
+  #NOTE: because "trump" is a positive word in the "bing" and "nrc" lexicons, I've removed it from the "bing" and "nrc" sentiment scoring.
+  
+  matched_words_nrc <-
+    filter(Article_wdfrq, Article == article_num) %>%
+    inner_join(get_sentiments("nrc")) %>%
+    spread(sentiment, n , fill = 0) %>%
+    filter(word != "trump")
+  
+  Article_titles <-
+    Article_wdfrq[!duplicated(Article_wdfrq$Article), ]
+  
+  new_article <- data.frame(
+    Article = article_num,
+    Type = Article_titles$Type[article_num],
+    Date = Article_titles$Date[article_num],
+    prop_matched_affin = nrow(matched_words_afinn) /
+      nrow(filter(Article_wdfrq, Article == article_num)),
+    prop_matched_bing = nrow(matched_words_bing) /
+      nrow(filter(Article_wdfrq, Article == article_num)),
+    prop_matched_nrc = nrow(matched_words_nrc) /
+      nrow(filter(Article_wdfrq, Article == article_num)),
+    
+    #NOTE: I've divided the total sentiment scores by the number of words in the article so that I get a per word sentiment and I can compare articles without having to worry about the length of the article.
+    
+    affin_sentiment = sum(matched_words_afinn$sentiment) /
+      nrow(filter(Article_wdfrq, Article == article_num)),
+    bing_sentiment = sum(matched_words_bing$sentiment) /
+      nrow(filter(Article_wdfrq, Article == article_num)),
+    nrc_sentiment = (
+      sum(matched_words_nrc$positive) - sum(matched_words_nrc$negative)
+    ) /
+      nrow(filter(Article_wdfrq, Article == article_num)),
+    nrc_positive_score = sum(matched_words_nrc$positive) /
+      nrow(filter(Article_wdfrq, Article == article_num)),
+    nrc_negative_score = sum(matched_words_nrc$negative) /
+      nrow(filter(Article_wdfrq, Article == article_num)),
+    nrc_fear_score = sum(matched_words_nrc$fear) /
+      nrow(filter(Article_wdfrq, Article == article_num)),
+    nrc_anger_score = sum(matched_words_nrc$anger) /
+      nrow(filter(Article_wdfrq, Article == article_num))
+  )
+  return(new_article)
+}
+
+initialize_wdfrq_df <- function() {
+  df <- data.frame(
+    Article = integer(),
+    Type = character(),
+    Date = as_datetime(character()),
+    title = character(),
+    word = character(),
+    n = integer(),
+    proportion = integer()
+  )
+  return(df)
+}
+
+initialize_sntmts_df <- function() {
+  df <- data.frame(
+    Article = integer(),
+    Type = character(),
+    Date = as_datetime(character()),
+    prop_matched_affin = integer(),
+    prop_matched_bing = integer(),
+    prop_matched_nrc = integer(),
+    affin_sentiment = integer(),
+    bing_sentiment = integer(),
+    nrc_sentiment = integer(),
+    nrc_positive_score = integer(),
+    nrc_negative_score = integer(),
+    nrc_fear_score = integer(),
+    nrc_anger_score = integer()
+  )
+  return(df)
+}
+```
+
+## B2. Importing and Measuring Data: building the working data.frames ("All-articles" & "Article_sntmts")
+
+```{r message=FALSE, warning=FALSE}
+#Code to load the chunks of articles into my working data.frame. 
+
+setwd("~/MSSP/747 Social Data Analysis/747_FinalProject")
+
+data("stop_words")
+
+#Global variable to number the articles
+y <- 1
+
+Article_wdfrq <- initialize_wdfrq_df()
+
+Article_wdfrq <- rbind(Article_wdfrq, load_articles("Data/Nov_Dec.txt"))
+y <- max(Article_wdfrq$Article)+1
+Article_wdfrq <- rbind(Article_wdfrq, load_articles("Data/Jan_Feb.txt"))
+y <- max(Article_wdfrq$Article)+1
+Article_wdfrq <- rbind(Article_wdfrq, load_articles("Data/Mar_Apr.txt"))
+y <- max(Article_wdfrq$Article)+1
+Article_wdfrq <- rbind(Article_wdfrq, load_articles("Data/May_June.txt"))
+y <- max(Article_wdfrq$Article)+1
+Article_wdfrq <- rbind(Article_wdfrq, load_articles("Data/July_Aug.txt"))
+y <- max(Article_wdfrq$Article)+1
+
+#Code to loop through all the articles, using measure_sentiment() to collect each article's sentiment.
+
+Article_sntmts <- initialize_sntmts_df()
+
+for (i in 1:max(Article_wdfrq$Article)) {
+  Article_sntmts <-
+    rbind(Article_sntmts, measure_sentiment(i))
+}
+
+#Then going back to the Article_wdfrq data.frame to get the title sentiments, and joining them to the Article_sntmts data.frame.
+
+title_scores <- get_sentences(unique(Article_wdfrq$title)) %>% 
+  sentiment() %>% 
+  group_by(element_id) %>% 
+  summarise(score = sum(sentiment)) %>% 
+  rename(Article=element_id, title_score=score)
+
+Article_sntmts <- full_join(Article_sntmts, title_scores, by="Article")
+
+
+#Saving the running of the previous lines back into data.frames so that I can reload the data.frames without having to run this chunk of code again.  I did this for the process of creating my data display functions, and collecting interesing resultes.
+#save(Article_wdfrq, file = "Data/Article_wdfrq.RData")
+#save(Article_sntmts, file = "Data/Article_sntmts.RData")
+#load(file = "Data/Article_wdfrq.RData")
+#load(file = "Data/Article_sntmts.RData")
+
+#Code to help me verify that my functions are getting the correct data in the correct places.  
+#Article_titles <- Article_wdfrq[!duplicated(Article_wdfrq$Article),]
+```
+
+## C1. Displaying data: functions
+
+There are four article "Types": Op-Ed, Letter, Editorial, News.  I've built my display functions so that it can select a subset of the articles based on an input that is a character string - e.g. c("Op-Ed", "Editorial").
+
+```{r}
+#NOTE for by_type: which is either "wdfrq" or "sntmts".  type is a character string including the four article types (Op-Ed, Letter, Editorial, News).
+by_type <- function(frame, type) {
+  if (frame == "wdfrq") {
+    df <- initialize_wdfrq_df()
+    for (i in 1:length(type)) {
+      new <- filter(Article_wdfrq, Type == type[i])
+      df <- rbind(df, new)
+    }
+  }
+  else{
+    df <- initialize_sntmts_df()
+    for (i in 1:length(type)) {
+      new <- filter(Article_sntmts, Type == type[i])
+      df <- rbind(df, new)
+    }
+  }
+  return(df)
+}
+
+sntmts_over_time <- function(type, target_word) {
+  df <- by_type("sntmts", type)
+  the_word <- filter(df, word == target_word)
+  #Since the target_word may not be in a given article, need to finesse the code so that word="target_word" and n=0 shows up in word_in_articles.  Therefore I've used "people" to get all of the articles and used the no_word data.frame to build in "target_word, n=0, proportion=0" into the word_in_articles data.frame.
+  no_word <- filter(df, word == 'people') %>%
+    mutate(word = target_word,
+           n = 0,
+           proportion = 0) %>%
+    anti_join(the_word, by = "Article")
+  word_in_articles <- rbind(the_word, no_word) %>%
+    arrange(Article)
+  ggplot(word_in_articles, aes(x = Date, y = proportion)) +
+    geom_point() +
+    geom_smooth(se=FALSE) +
+    geom_vline(xintercept=as_datetime("2021-01-06")) +
+    geom_vline(xintercept=as_datetime("2021-04-08")) +
+    geom_vline(xintercept=as_datetime("2021-06-16")) +
+    geom_vline(xintercept=as_datetime("2021-06-22")) +
+    geom_vline(xintercept=as_datetime("2021-07-01")) +
+    geom_vline(xintercept=as_datetime("2021-07-12"))
+  return(word_in_articles)
+}
+```
+
+
+```{r}
+wdfrq_over_time <- function(type, target_word) {
+  df <- by_type("wdfrq", type)
+  the_word <- filter(df, word == target_word)
+  #Since the target_word may not be in a given article, need to finesse the code so that word="target_word" and n=0 shows up in word_in_articles.  Therefore I've used "people" to get all of the articles and used the no_word data.frame to build in "target_word, n=0, proportion=0" into the word_in_articles data.frame.
+  no_word <- filter(df, word == 'people') %>%
+    mutate(word = target_word,
+           n = 0,
+           proportion = 0) %>%
+    anti_join(the_word, by = "Article")
+  word_in_articles <- rbind(the_word, no_word) %>%
+    arrange(Article)
+  ggplot(word_in_articles, aes(x = Date, y = proportion)) +
+    geom_point() +
+    geom_smooth(se=FALSE) +
+    geom_vline(xintercept=as_datetime("2021-01-06")) +
+    geom_vline(xintercept=as_datetime("2021-04-08")) +
+    geom_vline(xintercept=as_datetime("2021-06-16")) +
+    geom_vline(xintercept=as_datetime("2021-07-01")) +
+    geom_vline(xintercept=as_datetime("2021-07-12")) +
+    theme(axis.text.x=element_text(angle=45, hjust=1, vjust=1),
+          axis.title.x=element("")) +
+    scale_x_datetime(limits=as_datetime(c("2020-10-01", "2021-08-31")),
+                     labels=date_format("%B"),
+                     breaks=date_breaks("months"))
+}
+```
+
+## C2. Displaying data: intersting results
+
+NOTE: In tokenizing the capitalization is dropped, and as such I've lost the ability to distinguish between captital-D "Democratic" - e.g. Democratic policy, versus small-d "democratic" - e.g. democratic ideals.
+```{r  message=FALSE, warning=FALSE}
+
+#Code to give me the most frequently used words in the articles.
+# words <- Article_wdfrq %>% group_by(word) %>% summarise(n=sum(n))
+# words <- words[order(words$n, decreasing=TRUE),]
+
+wdfrq_over_time(c("News"),"manchin")
+wdfrq_over_time(c("Op-Ed", "Editorial"),"manchin")
+wdfrq_over_time(c("Op-Ed", "Editorial", "Letter"),"manchin")
+
+
+```
