@@ -31,6 +31,8 @@ Then I went through the list that Nexis/Uni generated and removed the duplicate 
 
 For each of the .RTF files I converted them to .txt files (so I could modify them), added Document-Type where it was missing (mostly for National Desk articles that weren't given a "Document-Type: New" tag), removed the explanatory verbage at the end of the article (e.g. PHOTO captions, author descriptions, live links), removed a summary article of Late Night scripts, removed a daily briefing (which summarized the day's articles), and remove duplicate articles that had gotten through my Nexis/Uni filtering.
 
+Testing GitHub
+
 ## B1. Importing and Measuring Data: functions
 
 ```{r}
