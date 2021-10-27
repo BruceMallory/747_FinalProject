@@ -14,6 +14,7 @@ library(lubridate)
 library(ggplot2)
 library(tidyr)
 library(sentimentr)
+library(textdata)
 ```
 
 ## A. Downloading Data
@@ -35,7 +36,7 @@ Testing GitHub
 
 ## B1. Importing and Measuring Data: functions
 
-```{r}
+```{r message=FALSE, warning=FALSE}
 #Function to load a chunk of articles and collect word frequencies.
 load_articles <- function(file_name) {
   Files <- read.delim(file_name, header=FALSE)
@@ -99,12 +100,12 @@ load_articles <- function(file_name) {
 measure_sentiment <- function(article_num) {
   matched_words_afinn <-
     filter(Article_wdfrq, Article == article_num) %>%
-    inner_join(get_sentiments("afinn")) %>%
+    inner_join(get_sentiments("afinn"), by="word") %>%
     mutate(sentiment = n * value)
   
   matched_words_bing <-
     filter(Article_wdfrq, Article == article_num) %>%
-    inner_join(get_sentiments("bing")) %>%
+    inner_join(get_sentiments("bing"), by="word") %>%
     spread(sentiment, n , fill = 0) %>%
     mutate(sentiment = positive - negative) %>%
     filter(word != "trump")
@@ -113,7 +114,7 @@ measure_sentiment <- function(article_num) {
   
   matched_words_nrc <-
     filter(Article_wdfrq, Article == article_num) %>%
-    inner_join(get_sentiments("nrc")) %>%
+    inner_join(get_sentiments("nrc"), by="word") %>%
     spread(sentiment, n , fill = 0) %>%
     filter(word != "trump")
   
