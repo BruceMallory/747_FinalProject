@@ -4,6 +4,7 @@
 type <- c("News", "Op-Ed", "Editorial")
 types <- NULL
 #BRUCE, we're working on getting this to say "News, Op-Ed, and Editorial"
+#AND - what about groping by day or week or month? for wdfrq
 for (i in 1:length(type)){
   types <- type[i]
 }
@@ -27,6 +28,11 @@ word_in_articles <- rbind(the_word, no_word) %>%
 ggplot(word_in_articles, aes(x = Date, y = proportion)) +
   geom_point() +
   geom_smooth(se=FALSE, method="loess", formula='y~x') +
+  geom_jitter() +
+  geom_vline(xintercept=as_datetime("2021-06-16"),
+             linetype="dashed",
+             color="red") +
+  geom_text()
   theme_tufte() +
   ggtitle(paste("Frequency of the word", target_word,
                 "\nwithin each article")) +
@@ -35,7 +41,7 @@ ggplot(word_in_articles, aes(x = Date, y = proportion)) +
         plot.title=element_text(family="", face="bold", color="blue")) +
   ggtitle(paste("Frequency of the word", target_word)) +
   labs(subtitle=(paste("within each of", nrow(word_in_articles),
-                       as.vector(type)],
+                       as.vector(type),
                       "\narticles from the NYTimes"))) +
   scale_x_datetime(limits=as_datetime(c("2020-11-01", "2021-08-31")),
                         labels=date_format("%b"),
