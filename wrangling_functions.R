@@ -124,7 +124,7 @@ measure_sentiment <- function(article_num) {
 }
 
 #---------------------
-#data frame initializing functions
+#initializing functions for the data frames I'm creating
 initialize_wdfrq_df <- function() {
   df <- data.frame(
     Article = integer(),
