@@ -72,29 +72,42 @@ wdfrq_over_time <- function(type, target_word) {
                                          as_datetime("2021-07-01"),
                                          as_datetime("2021-07-12")), 
                           Key_Dates_labels = c("a", "b", "c", "d", "e"),
-                          Key_Dates = c("a) Manchin publishes op-ed saying he will not alter filibuster",
-                            "b) Manchin offers amendments and expresses willingness to alter filibuster",
-                            "c) Senate blocks debate on bill",
-                            "d) Supreme Court hands down voting right decision",
-                            "e) Texas Democrats flee state"),
+                          Key_Dates = c("(a) Manchin publishes op-ed saying he will not alter filibuster",
+                            "(b) Manchin offers amendments and expresses willingness to alter filibuster",
+                            "(c) Senate blocks debate on bill",
+                            "(d) Supreme Court hands down voting right decision",
+                            "(e) Texas Democrats flee state"),
                           stringsAsFactors = FALSE)
   
   ggplot(word_in_articles, aes(x = Date, y = proportion)) +
     geom_point() +
     geom_smooth(color="red", se=FALSE) +
-    geom_vline(aes(xintercept = xintercept, color = Key_Dates), line.data, lty=3) +
-    annotate("text", line.data$xintercept, min(word_in_articles$proportion), hjust=-.25, vjust = 3, 
+    geom_vline(aes(xintercept = xintercept, color = Key_Dates), line.data, lty=2) +
+    annotate("text", line.data$xintercept, max(word_in_articles$proportion), hjust=-.5, vjust = -1, 
              color="blue", label = line.data$Key_Dates_labels) +
+    theme_bw() +
     theme(axis.text.x=element_text(angle=45, hjust=1, vjust=1),
-          legend.position = "bottom",
-          legend.text = element_text(color = "blue")) +
-    guides(color=guide_legend(nrow=5,byrow=FALSE)) +
+          plot.title = element_text(face="bold", size=20, family="Times New Roman", 
+                                    hjust=.10, vjust=-18),
+          plot.subtitle = element_text(size=14, family="Times New Roman", 
+                                       hjust=.10, vjust=-28),
+          legend.position = "top",
+          legend.justification = "right",
+          legend.title = element_text(family="Times New Roman", size=16, color = "blue"),
+          legend.text = element_text(family="Times New Roman", size=12, color = "blue"),
+          legend.background = element_rect(colour = "blue"),
+          panel.grid.minor = element_blank()) +
+    guides(color=guide_legend("Key Dates", nrow=5, byrow=FALSE)) +
+    scale_fill_discrete(name="Experimental\nCondition") +
     scale_color_manual(values=c("blue", "blue", "blue", "blue", "blue")) +
-    scale_x_datetime(breaks=date_breaks("months"), 
+    scale_x_datetime(breaks=date_breaks("months"),
                      labels=date_format("%B"),
                      limits=as_datetime(c("2020-10-01", "2021-08-31"))) +
-    xlab("")
-}
+    scale_y_continuous(labels = scales::percent_format(accuracy = 1)) +
+    labs(title=paste("Frequency that \"", target_word, "\" is mentioned"), 
+         subtitle=c("Total of 30 articles"),
+         x ="", y="proportion within each article")
+  }
 
 
 ggplot(word_in_articles, aes(x = Date, y = proportion)) + 
