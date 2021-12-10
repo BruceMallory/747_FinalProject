@@ -117,7 +117,7 @@ NOTE: In tokenizing the capitalization is dropped, and as such I've lost the abi
 # words <- Article_wdfrq %>% group_by(word) %>% summarise(n=sum(n))
 # words <- words[order(words$n, decreasing=TRUE),]
 
-wdfrq_over_time(c("News"),"manchin")
+wdfrq_over_time(c("News"),"justice")
 wdfrq_over_time(c("Op-Ed", "Editorial"),"manchin")
 wdfrq_over_time(c("Op-Ed", "Editorial", "Letter"),"manchin")
 
