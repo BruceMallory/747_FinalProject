@@ -104,10 +104,10 @@ sntmts_over_time <- function(type, sent_dict) {
   
   Article_sntmts$fill_scale <- 10*(max(Article_sntmts[[sent_dict]])-Article_sntmts[[sent_dict]])+1
   
-  ggplot(Article_sntmts, aes(x = Date, y = affin_sentiment))+
-    geom_jitter(shape=21, size=3, aes(fill=fill_scale) ) +
-    scale_fill_hue(l=40, c=35)
-    geom_smooth(color="red", se=FALSE) +
+  ggplot(Article_sntmts, aes(x = Date, y = .data[[sent_dict]])) +
+    geom_smooth(color="black", se=FALSE) +
+    geom_jitter(shape=21, size=3, aes(fill=.data[[sent_dict]])) +
+    scale_fill_gradient(guide="none", low="red", high="green") +
     geom_vline(aes(xintercept = xintercept, color = Key_Dates), line.data, lty=2) +
     theme_bw() +
     xlab("") +
@@ -125,18 +125,14 @@ sntmts_over_time <- function(type, sent_dict) {
           panel.grid.minor = element_blank()) +
     guides(color=guide_legend("Key Dates", nrow=5, byrow=FALSE)) +
     scale_color_manual(values=c("blue", "blue", "blue", "blue", "blue")) +
-    scale_fill_distiller(palette = "Spectral") +
     scale_x_datetime(breaks=date_breaks("months"),
                      labels=date_format("%B"),
                      limits=as_datetime(c("2020-11-01", "2021-08-31"))) +
-    labs(title=paste("Frequency that \"", target_word,
-                     "\" is mentioned within a NYTimes article about H.R.1"), 
-         subtitle=paste("Total of",nrow(word_in_articles), "articles in", 
+    labs(title=paste("Sentiment of NYTimes articles about H.R.1"), 
+         subtitle=paste("Total of",nrow(Article_sntmts), "articles in", 
                         paste(type, collapse=", "), "\n", 
-                        paste("\"", target_word, "\" is mentioned in", 
-                              nrow(filter(word_in_articles, n >0)), "of them")))
+                        "Sentiment measured using the", sent_dict))
 }
 
 sntmts_over_time(c("Op-Ed", "Editorial", "Letter", "News"), affin_sentiment)
-max(Article_sntmts$affin_sentiment)-Article_sntmts$affin_sentiment)
 
