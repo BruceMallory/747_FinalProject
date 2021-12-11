@@ -101,7 +101,9 @@ measure_sentiment <- function(article_num) {
     prop_matched_nrc = nrow(matched_words_nrc) /
       nrow(filter(Article_wdfrq, Article == article_num)),
     
-    #NOTE: I've divided the total sentiment scores by the number of words in the article so that I get a per word sentiment and I can compare articles without having to worry about the length of the article.
+    #NOTE: I've divided the total sentiment scores by the number of words in the 
+    #article so that I get a per word sentiment and I can compare articles without 
+    #having to worry about the length of the article.
     
     affin_sentiment = sum(matched_words_afinn$sentiment) /
       nrow(filter(Article_wdfrq, Article == article_num)),

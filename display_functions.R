@@ -1,7 +1,7 @@
 
 #There are four article "Types": Op-Ed, Letter, Editorial, News.  
-#I've built my display functions so that it can select a subset of the articles based on an input 
-#that is a character string - e.g. c("Op-Ed", "Editorial").
+#I've built my display functions so that it can select a subset of the articles 
+#based on an input that is a character string - e.g. c("Op-Ed", "Editorial").
 
 
 #NOTE for by_type: which is either "wdfrq" or "sntmts".  type is a character string including 
@@ -24,33 +24,6 @@ by_type <- function(frame, type) {
   return(df)
 }
 
-sntmts_over_time <- function(type, target_word) {
-  df <- by_type("sntmts", type)
-  the_word <- filter(df, word == target_word)
-  #Since the target_word may not be in a given article, need to finesse the code
-  #so that word="target_word" and n=0 shows up in word_in_articles, so that I
-  #get instances of 0 of that word in an article.  Therefore I've used "people"
-  #to get all of the articles and used the no_word data.frame to build in
-  #"target_word, n=0, proportion=0" into the word_in_articles data.frame.
-  no_word <- filter(df, word == 'people') %>%
-    mutate(word = target_word,
-           n = 0,
-           proportion = 0) %>%
-    anti_join(the_word, by = "Article")
-  word_in_articles <- rbind(the_word, no_word) %>%
-    arrange(Article)
-  ggplot(word_in_articles, aes(x = Date, y = proportion)) +
-    geom_point() +
-    geom_smooth(se=FALSE) +
-    geom_vline(xintercept=as_datetime("2021-01-06")) +
-    geom_vline(xintercept=as_datetime("2021-04-08")) +
-    geom_vline(xintercept=as_datetime("2021-06-16")) +
-    geom_vline(xintercept=as_datetime("2021-06-22")) +
-    geom_vline(xintercept=as_datetime("2021-07-01")) +
-    geom_vline(xintercept=as_datetime("2021-07-12"))
-  return(word_in_articles)
-}
-
 wdfrq_over_time <- function(type, target_word) {
   df <- by_type("wdfrq", type)
   the_word <- filter(df, word == target_word)
@@ -71,47 +44,99 @@ wdfrq_over_time <- function(type, target_word) {
                                          as_datetime("2021-06-16"),
                                          as_datetime("2021-07-01"),
                                          as_datetime("2021-07-12")), 
-                          Key_Dates_labels = c("a", "b", "c", "d", "e"),
-                          Key_Dates = c("(a) Manchin publishes op-ed saying he will not alter filibuster",
-                            "(b) Manchin offers amendments and expresses willingness to alter filibuster",
-                            "(c) Senate blocks debate on bill",
-                            "(d) Supreme Court hands down voting right decision",
-                            "(e) Texas Democrats flee state"),
+                            Key_Dates = c("01/06 : Manchin publishes op-ed saying he will not alter filibuster",
+                            "04/08 : Manchin offers amendments and expresses willingness to alter filibuster",
+                            "06/16 : Senate blocks debate on HR1: For The People Act",
+                            "07/01 : Supreme Court hands down major voting rights decision",
+                            "07/12 : Texas Democrats flee state to protest voting restrictions"),
                           stringsAsFactors = FALSE)
   
   ggplot(word_in_articles, aes(x = Date, y = proportion)) +
-    geom_point() +
+    geom_jitter(aes(fill=cut(n, c(-Inf,0,Inf))), shape=21, size=3)  +
+    scale_fill_manual(guide="none", values = c("white", "red")) +
     geom_smooth(color="red", se=FALSE) +
     geom_vline(aes(xintercept = xintercept, color = Key_Dates), line.data, lty=2) +
-    annotate("text", line.data$xintercept, max(word_in_articles$proportion), 
-             hjust=-.5, vjust = 0, color="blue", label = line.data$Key_Dates_labels) +
     theme_bw() +
+    xlab("") +
+    ylab(paste("Proportion of \"", target_word, "\" within each article")) +
     theme(text = element_text(family = "Times New Roman"),
-          axis.text.x=element_text(angle=45, hjust=1, vjust=1),
-          plot.title = element_text(face="bold", size=20, 
-                                    hjust=.10, vjust=-18),
-          plot.subtitle = element_text(size=14, 
-                                       hjust=.10, vjust=-28),
-          legend.position = "top",
+          axis.text.x=element_text(angle=45, hjust=1, vjust=1, face="bold"),
+          axis.text.y=element_text(face="bold"),
+          plot.title = element_text(face="bold", size=20),
+          plot.subtitle = element_text(size=14),
+          legend.position = "bottom",
           legend.justification = "right",
           legend.title = element_text(size=16, color = "blue"),
           legend.text = element_text(size=12, color = "blue"),
           legend.background = element_rect(colour = "blue"),
           panel.grid.minor = element_blank()) +
     guides(color=guide_legend("Key Dates", nrow=5, byrow=FALSE)) +
-    scale_fill_discrete(name="Experimental\nCondition") +
     scale_color_manual(values=c("blue", "blue", "blue", "blue", "blue")) +
     scale_x_datetime(breaks=date_breaks("months"),
                      labels=date_format("%B"),
-                     limits=as_datetime(c("2020-10-01", "2021-08-31"))) +
-    scale_y_continuous(labels = scales::percent_format(accuracy = 0.01),
-                       limits = c(0, (max(word_in_articles$proportion))+.0025)) +
-    labs(title=paste("Frequency that \"", target_word, "\" is mentioned"), 
-         subtitle=paste("Total of 30 articles mention \"", target_word, "\""),
-         x ="", y="proportion within each article")
+                     limits=as_datetime(c("2020-11-01", "2021-08-31"))) +
+    scale_y_continuous(labels = scales::percent_format(accuracy = 0.01)) +
+    labs(title=paste("Frequency that \"", target_word,
+                     "\" is mentioned within a NYTimes article about H.R.1"), 
+         subtitle=paste("Total of",nrow(word_in_articles), "articles in", 
+                        paste(type, collapse=", "), "\n", 
+                        paste("\"", target_word, "\" is mentioned in", 
+                              nrow(filter(word_in_articles, n >0)), "of them")))
+       
   }
-wdfrq_over_time(c("Op-Ed", "Editorial", "Letter"),"justice")
+#Code below was used for building the wdfq_over_time function
+#wdfrq_over_time(c("Op-Ed", "Editorial", "Letter", "News"),"supreme")
+#type <- c("Op-Ed", "Editorial", "Letter", "News")
+#target_word <- "manchin"
 
-type <- c("Op-Ed", "Editorial", "Letter")
-target_word <- "justice"
+sntmts_over_time <- function(type, sent_dict) {
+  line.data <- data.frame(xintercept = c(as_datetime("2021-01-06"), 
+                                         as_datetime("2021-04-08"),
+                                         as_datetime("2021-06-16"),
+                                         as_datetime("2021-07-01"),
+                                         as_datetime("2021-07-12")), 
+                          Key_Dates = c("01/06 : Manchin publishes op-ed saying he will not alter filibuster",
+                                        "04/08 : Manchin offers amendments and expresses willingness to alter filibuster",
+                                        "06/16 : Senate blocks debate on HR1: For The People Act",
+                                        "07/01 : Supreme Court hands down major voting rights decision",
+                                        "07/12 : Texas Democrats flee state to protest voting restrictions"),
+                          stringsAsFactors = FALSE)
+  
+  Article_sntmts$fill_scale <- 10*(max(Article_sntmts[[sent_dict]])-Article_sntmts[[sent_dict]])+1
+  
+  ggplot(Article_sntmts, aes(x = Date, y = affin_sentiment))+
+    geom_jitter(shape=21, size=3, aes(fill=fill_scale) ) +
+    scale_fill_hue(l=40, c=35)
+    geom_smooth(color="red", se=FALSE) +
+    geom_vline(aes(xintercept = xintercept, color = Key_Dates), line.data, lty=2) +
+    theme_bw() +
+    xlab("") +
+    ylab(paste(sent_dict, "score for each article")) +
+    theme(text = element_text(family = "Times New Roman"),
+          axis.text.x=element_text(angle=45, hjust=1, vjust=1, face="bold"),
+          axis.text.y=element_text(face="bold"),
+          plot.title = element_text(face="bold", size=20),
+          plot.subtitle = element_text(size=14),
+          legend.position = "bottom",
+          legend.justification = "right",
+          legend.title = element_text(size=16, color = "blue"),
+          legend.text = element_text(size=12, color = "blue"),
+          legend.background = element_rect(colour = "blue"),
+          panel.grid.minor = element_blank()) +
+    guides(color=guide_legend("Key Dates", nrow=5, byrow=FALSE)) +
+    scale_color_manual(values=c("blue", "blue", "blue", "blue", "blue")) +
+    scale_fill_distiller(palette = "Spectral") +
+    scale_x_datetime(breaks=date_breaks("months"),
+                     labels=date_format("%B"),
+                     limits=as_datetime(c("2020-11-01", "2021-08-31"))) +
+    labs(title=paste("Frequency that \"", target_word,
+                     "\" is mentioned within a NYTimes article about H.R.1"), 
+         subtitle=paste("Total of",nrow(word_in_articles), "articles in", 
+                        paste(type, collapse=", "), "\n", 
+                        paste("\"", target_word, "\" is mentioned in", 
+                              nrow(filter(word_in_articles, n >0)), "of them")))
+}
+
+sntmts_over_time(c("Op-Ed", "Editorial", "Letter", "News"), affin_sentiment)
+max(Article_sntmts$affin_sentiment)-Article_sntmts$affin_sentiment)
 
