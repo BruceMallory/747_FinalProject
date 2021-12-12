@@ -86,6 +86,7 @@ wdfrq_over_time <- function(type, target_word) {
   }
 #Code below was used for building the wdfq_over_time function
 #wdfrq_over_time(c("Op-Ed", "Editorial", "Letter", "News"),"supreme")
+
 #type <- c("Op-Ed", "Editorial", "Letter", "News")
 #target_word <- "manchin"
 
@@ -101,8 +102,6 @@ sntmts_over_time <- function(type, sent_dict) {
                                         "07/01 : Supreme Court hands down major voting rights decision",
                                         "07/12 : Texas Democrats flee state to protest voting restrictions"),
                           stringsAsFactors = FALSE)
-  
-  Article_sntmts$fill_scale <- 10*(max(Article_sntmts[[sent_dict]])-Article_sntmts[[sent_dict]])+1
   
   ggplot(Article_sntmts, aes(x = Date, y = .data[[sent_dict]])) +
     geom_smooth(color="black", se=FALSE) +
