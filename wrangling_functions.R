@@ -105,11 +105,11 @@ measure_sentiment <- function(article_num) {
     #article so that I get a per word sentiment and I can compare articles without 
     #having to worry about the length of the article.
     
-    affin_sentiment = sum(matched_words_afinn$sentiment) /
+    affin_score = sum(matched_words_afinn$sentiment) /
       nrow(filter(Article_wdfrq, Article == article_num)),
-    bing_sentiment = sum(matched_words_bing$sentiment) /
+    bing_score = sum(matched_words_bing$sentiment) /
       nrow(filter(Article_wdfrq, Article == article_num)),
-    nrc_sentiment = (
+    nrc_score = (
       sum(matched_words_nrc$positive) - sum(matched_words_nrc$negative)
     ) /
       nrow(filter(Article_wdfrq, Article == article_num)),
@@ -120,6 +120,8 @@ measure_sentiment <- function(article_num) {
     nrc_fear_score = sum(matched_words_nrc$fear) /
       nrow(filter(Article_wdfrq, Article == article_num)),
     nrc_anger_score = sum(matched_words_nrc$anger) /
+      nrow(filter(Article_wdfrq, Article == article_num)),
+    nrc_joy_score = sum(matched_words_nrc$joy) /
       nrow(filter(Article_wdfrq, Article == article_num))
   )
   return(new_article)
@@ -148,9 +150,9 @@ initialize_sntmts_df <- function() {
     prop_matched_affin = integer(),
     prop_matched_bing = integer(),
     prop_matched_nrc = integer(),
-    affin_sentiment = integer(),
-    bing_sentiment = integer(),
-    nrc_sentiment = integer(),
+    affin_score = integer(),
+    bing_score = integer(),
+    nrc_score = integer(),
     nrc_positive_score = integer(),
     nrc_negative_score = integer(),
     nrc_fear_score = integer(),

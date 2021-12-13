@@ -53,8 +53,8 @@ wdfrq_over_time <- function(type, target_word) {
   
   ggplot(word_in_articles, aes(x = Date, y = proportion)) +
     geom_jitter(aes(fill=cut(n, c(-Inf,0,Inf))), shape=21, size=3)  +
-    scale_fill_manual(guide="none", values = c("white", "red")) +
-    geom_smooth(color="red", se=FALSE) +
+    scale_fill_manual(guide="none", values = c("white", "darkslateblue")) +
+    geom_smooth(color="grey", se=FALSE) +
     geom_vline(aes(xintercept = xintercept, color = Key_Dates), line.data, lty=2) +
     theme_bw() +
     xlab("") +
@@ -78,19 +78,37 @@ wdfrq_over_time <- function(type, target_word) {
     scale_y_continuous(labels = scales::percent_format(accuracy = 0.01)) +
     labs(title=paste("Frequency that \"", target_word,
                      "\" is mentioned within a NYTimes article about H.R.1"), 
-         subtitle=paste("Total of",nrow(word_in_articles), "articles in", 
+         subtitle=paste(" Total of",nrow(word_in_articles), "articles in", 
                         paste(type, collapse=", "), "\n", 
                         paste("\"", target_word, "\" is mentioned in", 
                               nrow(filter(word_in_articles, n >0)), "of them")))
        
-  }
+}
+
 #Code below was used for building the wdfq_over_time function
 #wdfrq_over_time(c("Op-Ed", "Editorial", "Letter", "News"),"supreme")
 
 #type <- c("Op-Ed", "Editorial", "Letter", "News")
 #target_word <- "manchin"
 
-sntmts_over_time <- function(type, sent_dict) {
+sntmts_over_time <- function(type, sent_dict, target_word) {
+  sntmnt_in_articles <- by_type("sntmnt", type)
+  df <- by_type("wdfrq", type)
+  the_word <- filter(df, word == target_word)
+  #Since the target_word may not be in a given article, need to finesse the code
+  #so that word="target_word" and n=0 shows up in word_in_articles, so that I
+  #get instances of 0 of that word in an article.  Therefore I've used "people"
+  #to get all of the articles and used the no_word data.frame to build in
+  #"target_word, n=0, proportion=0" into the word_in_articles data.frame.
+  no_word <- filter(df, word == 'people') %>%
+    mutate(word = target_word,
+           n = 0,
+           proportion = 0) %>%
+    anti_join(the_word, by = "Article")
+  word_in_articles <- rbind(the_word, no_word) %>%
+    arrange(Article)
+  sntmnt_in_articles <- left_join(sntmnt_in_articles, word_in_articles)
+  
   line.data <- data.frame(xintercept = c(as_datetime("2021-01-06"), 
                                          as_datetime("2021-04-08"),
                                          as_datetime("2021-06-16"),
@@ -103,10 +121,18 @@ sntmts_over_time <- function(type, sent_dict) {
                                         "07/12 : Texas Democrats flee state to protest voting restrictions"),
                           stringsAsFactors = FALSE)
   
-  ggplot(Article_sntmts, aes(x = Date, y = .data[[sent_dict]])) +
-    geom_smooth(color="black", se=FALSE) +
-    geom_jitter(shape=21, size=3, aes(fill=.data[[sent_dict]])) +
-    scale_fill_gradient(guide="none", low="red", high="green") +
+  if (target_word == "none") {
+    point_size <- 3
+  }  else {
+    point_size <- 200 * sntmnt_in_articles$proportion + 3
+  }
+  
+  ggplot(sntmnt_in_articles, aes(x = Date, y = .data[[sent_dict]])) +
+    geom_smooth(color="grey", se=FALSE) +
+    geom_jitter(shape=21, size=point_size, aes(fill=.data[[sent_dict]])) +
+    scale_fill_gradient2(guide="none", low="red", high ="chartreuse3", mid="yellow") +
+    # scale_fill_viridis(guide = "none", option = "turbo",
+    #                    direction = -1, begin = .1, end = .9) +
     geom_vline(aes(xintercept = xintercept, color = Key_Dates), line.data, lty=2) +
     theme_bw() +
     xlab("") +
@@ -128,10 +154,13 @@ sntmts_over_time <- function(type, sent_dict) {
                      labels=date_format("%B"),
                      limits=as_datetime(c("2020-11-01", "2021-08-31"))) +
     labs(title=paste("Sentiment of NYTimes articles about H.R.1"), 
-         subtitle=paste("Total of",nrow(Article_sntmts), "articles in", 
+         subtitle=paste(" Total of",nrow(sntmnt_in_articles), "articles in", 
                         paste(type, collapse=", "), "\n", 
-                        "Sentiment measured using the", sent_dict))
+                        "Sentiment measured using the", sent_dict, "for each article\n",
+                        "Point size based on the proportion of \"", target_word,
+                        "\" in each article"))
 }
 
-sntmts_over_time(c("Op-Ed", "Editorial", "Letter", "News"), affin_sentiment)
-
+sntmts_over_time(c("News"), "affin_score", "justice")
+wdfrq_over_time(c("News"),"justice")
+type <- c("Op-Ed", "Editorial", "Letter", "News")

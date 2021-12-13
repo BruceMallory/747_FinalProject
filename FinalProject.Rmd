@@ -16,6 +16,9 @@ library(tidyr)
 library(sentimentr)
 library(textdata)
 library(scales)
+library(viridis)
+library(wordcloud)
+library(RColorBrewer)
 
 setwd("~/MSSP/747 Social Data Analysis/747_FinalProject")
 ```
