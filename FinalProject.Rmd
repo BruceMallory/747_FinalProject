@@ -12,6 +12,7 @@ library(stringr)
 library(tidytext)
 library(lubridate)
 library(ggplot2)
+library(gridExtra)
 library(tidyr)
 library(sentimentr)
 library(textdata)
@@ -37,17 +38,17 @@ Because of the limit on the number of articles that Nexis/Uni allowed me to down
 For each of the .RTF files I converted them to .txt files (so I could modify them), added "Document-Typ:" where it was missing (mostly for National Desk articles that weren't given a "Document-Type:" tag), removed the explanatory verbiage at the end of the article (e.g. PHOTO captions, author descriptions, live links), removed summary articles of Late Night scripts (of which there were many), removed all articles that were daily briefing (which summarized the day's articles), and removed duplicate articles that had gotten through my Nexis/Uni filtering.
 
 
-## B1. Importing and Measuring Data: functions
+## B1. Importing Data and Metric Calculation: functions
 
 I wrote functions to:
   (1) load chunks of articles (from the .txt files), tokenize by word, and calculate word frequencies,
-  (2) calculate word sentiments
+  (2) calculate article sentiments using multiple sentiment dictionaries
 
 ```{r message=FALSE, warning=FALSE}
 source("wrangling_functions.R")
 ```
 
-## B2. Importing and Measuring Data: building the working data.frames ("All-articles" & "Article_sntmts")
+## B2. Importing and Measuring Data: building the working data.frames ("Article_sntmts" & "Article_wdfrq)
 
 ```{r message=FALSE, warning=FALSE}
 #Code to load the chunks of articles into my working data.frame. 
@@ -104,14 +105,32 @@ Article_sntmts <- full_join(Article_sntmts, title_scores, by="Article")
 ## C1. Displaying data: functions
 
 I wrote functions to:
-(1) display word frequency over time - with key events overlayed,
+(1) display word frequency over time - with key events overlayed.
+This function takes two inputs:
+a) the type of article (either "Op-Ed", "Editorial", "Letter", and/or "News")
+b) the word whose frequency within each article is being displayed
+
 (2) display article sentiments over time - with key events overlayed.
+This function takes three inputs:
+a) the type of article (either "Op-Ed", "Editorial", "Letter", and/or "News")
+b) the sentiment score to be used
+c) a word whose frequency within each article will be displayed
+
 
 ```{r}
 source("display_functions.R")
 ```
+## C2. Finding focus words: functions
+I wrote functions to:
+(1) create a wordcloud 
+(2) filter the words in articles in the top and bottom quartiles of articles based on a given sentiment_score
+(3) display the freqeutnly used words
 
-## C2. Displaying data: intersting results
+```{r}
+source("filtering_functions.R")
+```
+
+## C3. Displaying data: intersting results
 
 NOTE: In tokenizing the capitalization is dropped, and as such I've lost the ability to distinguish between captital-D "Democratic" - e.g. Democratic policy, versus small-d "democratic" - e.g. democratic ideals.
 ```{r  message=FALSE, warning=FALSE}
