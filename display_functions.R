@@ -1,11 +1,11 @@
 
-#There are four article "Types": Op-Ed, Letter, Editorial, News.  
-#I've built my display functions so that it can select a subset of the articles 
-#based on an input that is a character string - e.g. c("Op-Ed", "Editorial").
+#'There are four article "Types": Op-Ed, Letter, Editorial, News.  
+#'I've built my display functions so that it can select a subset of the articles 
+#'based on an input that is a character string - e.g. c("Op-Ed", "Editorial").
 
 
-#NOTE for by_type: which is either "wdfrq" or "sntmts".  type is a character string including 
-#the four article types (Op-Ed, Letter, Editorial, News).
+#'NOTE for by_type: which is either "wdfrq" or "sntmts".  type is a character 
+#'string including the four article types (Op-Ed, Letter, Editorial, News).
 by_type <- function(frame, type) {
   if (frame == "wdfrq") {
     df <- initialize_wdfrq_df()
@@ -27,11 +27,11 @@ by_type <- function(frame, type) {
 wdfrq_over_time <- function(type, target_word) {
   df <- by_type("wdfrq", type)
   the_word <- filter(df, word == target_word)
-  #Since the target_word may not be in a given article, need to finesse the code
-  #so that word="target_word" and n=0 shows up in word_in_articles, so that I
-  #get instances of 0 of that word in an article.  Therefore I've used "people"
-  #to get all of the articles and used the no_word data.frame to build in
-  #"target_word, n=0, proportion=0" into the word_in_articles data.frame.
+  #'Since the target_word may not be in a given article, need to finesse the code
+  #'so that word="target_word" and n=0 shows up in word_in_articles, so that I
+  #'get instances of 0 of that word in an article.  Therefore I've used "people"
+  #'to get all of the articles and used the no_word data.frame to build in
+  #'"target_word, n=0, proportion=0" into the word_in_articles data.frame.
   no_word <- filter(df, word == 'people') %>%
     mutate(word = target_word,
            n = 0,
@@ -95,11 +95,11 @@ sntmts_over_time <- function(type, sent_dict, target_word) {
   sntmnt_in_articles <- by_type("sntmnt", type)
   df <- by_type("wdfrq", type)
   the_word <- filter(df, word == target_word)
-  #Since the target_word may not be in a given article, need to finesse the code
-  #so that word="target_word" and n=0 shows up in word_in_articles, so that I
-  #get instances of 0 of that word in an article.  Therefore I've used "people"
-  #to get all of the articles and used the no_word data.frame to build in
-  #"target_word, n=0, proportion=0" into the word_in_articles data.frame.
+  #'Since the target_word may not be in a given article, need to finesse the code
+  #'so that word="target_word" and n=0 shows up in word_in_articles, so that I
+  #'get instances of 0 of that word in an article.  Therefore I've used "people"
+  #'to get all of the articles and used the no_word data.frame to build in
+  #'"target_word, n=0, proportion=0" into the word_in_articles data.frame.
   no_word <- filter(df, word == 'people') %>%
     mutate(word = target_word,
            n = 0,

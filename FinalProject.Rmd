@@ -2,7 +2,9 @@
 title: "Final Project"
 author: "Bruce Mallory"
 date: "4/10/2021"
-output: pdf_document
+output:
+  html_document:
+    df_print: paged
 ---
 
 ```{r setup, message=FALSE, warning=FALSE}
@@ -35,7 +37,7 @@ I started with Nexis/Uni and searched for:
   
 Because of the limit on the number of articles that Nexis/Uni allowed me to download, I downloaded articles in two month intervals (in .RTF format).  Before downloading, I went through the list of articles that Nexis/Uni generated and removed the duplicate articles.  For the New York Times (and I imagine many other news organizations) slightly modified versions of the same article are published in different newspaper releases, and as such the same article could show up several times in the Nexis/Uni search.  Many times, I found that it was just the title that had changed when the article was republished.
 
-For each of the .RTF files I converted them to .txt files (so I could modify them), added "Document-Typ:" where it was missing (mostly for National Desk articles that weren't given a "Document-Type:" tag), removed the explanatory verbiage at the end of the article (e.g. PHOTO captions, author descriptions, live links), removed summary articles of Late Night scripts (of which there were many), removed all articles that were daily briefing (which summarized the day's articles), and removed duplicate articles that had gotten through my Nexis/Uni filtering.
+For each of the .RTF files I converted them to .txt files (so I could modify them), added "Document-Type:" where it was missing (mostly for National Desk articles that weren't given a "Document-Type:" tag), removed the explanatory verbiage at the end of the article (e.g. PHOTO captions, author descriptions, live links), removed summary articles of Late Night scripts (of which there were many), removed all articles that were daily briefing (which summarized the day's articles), and removed duplicate articles that had gotten through my Nexis/Uni filtering.
 
 
 ## B1. Importing Data and Metric Calculation: functions
@@ -48,7 +50,7 @@ I wrote functions to:
 source("wrangling_functions.R")
 ```
 
-## B2. Importing and Measuring Data: building the working data.frames ("Article_sntmts" & "Article_wdfrq)
+## B2. Importing and Measuring Data: building the working data.frames ("Article_sntmts" & "Article_wdfrq")
 
 ```{r message=FALSE, warning=FALSE}
 #Code to load the chunks of articles into my working data.frame. 
@@ -101,13 +103,63 @@ Article_sntmts <- full_join(Article_sntmts, title_scores, by="Article")
 #Article_titles <- Article_wdfrq[!duplicated(Article_wdfrq$Article),]
 
 ```
+## C1. Finding focus words: functions
 
-## C1. Displaying data: functions
+I am writing a function to display a bar graph of the 30 most frequent words in articles in the top and bottom quartiles of articles based on a given sentiment_score
+
+```{r message=FALSE, warning=FALSE}
+source("filtering_functions.R")
+```
+
+## C2. Finding focus words: visualizations
+Two visualizations to help find interesting words to track:
+(1) a wordcloud of all the words in all of the articles 
+(2) frequency bar graph of the top 30 words contributing to pos/neg sentiment_scores
+```{r}
+
+#Code to give me the most frequently used words in the articles.
+# words <- Article_wdfrq %>% group_by(word) %>% summarise(n=sum(n))
+# words <- words[order(words$n, decreasing=TRUE),]
+
+words_used <- Article_wdfrq %>% group_by(word) %>%
+  summarise(total=sum(n)) %>% 
+  arrange(desc(total))
+
+wordcloud(words = words_used$word, freq = words_used$total, min.freq = 50,           
+          max.words=200, random.order=FALSE, rot.per=0.35, 
+          scale=c(3.5,0.25), colors=brewer.pal(8, "Dark2"))
+
+pos_scores <- left_join(Article_wdfrq, Article_sntmts, by=c("Article", "Type", "Date")) %>% 
+  select(word, Article, Type, Date, n, affin_score) %>% 
+  filter(affin_score>quantile(affin_score)[4]) %>% 
+  group_by(word) %>%
+  summarise(total=sum(n)) %>% 
+  arrange(desc(total))
+
+wordcloud(words = pos_scores$word, freq = pos_scores$total, min.freq = 25,           
+          max.words=200, random.order=FALSE, rot.per=0.35, 
+          scale=c(3.5,0.25), colors=brewer.pal(8, "Dark2"))
+
+neg_scores <- left_join(Article_wdfrq, Article_sntmts, by=c("Article", "Type", "Date")) %>% 
+  select(word, Article, Type, Date, n, affin_score) %>% 
+  filter(affin_score<quantile(affin_score)[2]) %>% 
+  group_by(word) %>%
+  summarise(total=sum(n)) %>% 
+  arrange(desc(total))
+
+wordcloud(words = neg_scores$word, freq = neg_scores$total, min.freq = 25,           
+          max.words=200, random.order=FALSE, rot.per=0.35, 
+          scale=c(3.5,0.25), colors=brewer.pal(8, "Dark2"))
+
+freq_wrds(affin_score)
+```
+
+## D. Displaying data: functions
 
 I wrote functions to:
 (1) display word frequency over time - with key events overlayed.
 This function takes two inputs:
-a) the type of article (either "Op-Ed", "Editorial", "Letter", and/or "News")
+a) the type of article ("Op-Ed", "Editorial", "Letter", and/or "News")
 b) the word whose frequency within each article is being displayed
 
 (2) display article sentiments over time - with key events overlayed.
@@ -120,28 +172,17 @@ c) a word whose frequency within each article will be displayed
 ```{r}
 source("display_functions.R")
 ```
-## C2. Finding focus words: functions
-I wrote functions to:
-(1) create a wordcloud 
-(2) filter the words in articles in the top and bottom quartiles of articles based on a given sentiment_score
-(3) display the freqeutnly used words
 
-```{r}
-source("filtering_functions.R")
-```
-
-## C3. Displaying data: intersting results
+## E3. Displaying data: intersting results
 
 NOTE: In tokenizing the capitalization is dropped, and as such I've lost the ability to distinguish between captital-D "Democratic" - e.g. Democratic policy, versus small-d "democratic" - e.g. democratic ideals.
-```{r  message=FALSE, warning=FALSE}
-
-#Code to give me the most frequently used words in the articles.
-# words <- Article_wdfrq %>% group_by(word) %>% summarise(n=sum(n))
-# words <- words[order(words$n, decreasing=TRUE),]
+```{r  message=FALSE, warning=FALSE, message=FALSE}
 
 wdfrq_over_time(c("News"),"justice")
 wdfrq_over_time(c("Op-Ed", "Editorial"),"manchin")
 wdfrq_over_time(c("Op-Ed", "Editorial", "Letter"),"manchin")
+
+sntmts_over_time(c("Op-Ed", "Editorial", "Letter"), "nrc_fear_score", "sinema")
 
 
 ```

@@ -1,15 +1,15 @@
 #---------------------
-#Function to load a chunk of articles, tokenize by word, remove stop words, and collect word frequencies.
+#'Function to load a chunk of articles, tokenize by word, remove stop words, and 
+#'collect word frequencies.
 load_articles <- function(file_name) {
   Files <- read.delim(file_name, header=FALSE)
   Articles <- as.data.frame(Files)
   colnames(Articles) <- c("line")
-  #Initializing the data.frame for collecting metrics
-  #These variables strings are collecting the lines within each article
-  #that will be relevant for my collecting the article words to analyze.
-  #I've marked where the article title is, where the body starts and ends and where the date is.
-  #Additionally I've marked where the type of article is specified,
-  #because as I load articles I want to ignore the opinion articles.
+  #'Initializing the data.frame for collecting metrics
+  #'These variables strings are collecting the lines within each article
+  #'that will be relevant for my collecting the article words to analyze.
+  #'I've marked where the article title is, where the body starts and ends and where the date is.
+  #'Additionally I've marked where the type of article is specified.
   These_articles <- data.frame(
     Article = integer(),
     Type = character(),
@@ -20,8 +20,9 @@ load_articles <- function(file_name) {
     proportion = integer()
   )
   
-  #x is a counter to help me number each of the articles that I'm collecting,
-  #it's a local variable.  y is the global variable that is seeded each time this function is called
+  #'x is a counter to help me number each of the articles that I'm collecting,
+  #'it's a local variable.  y is the global variable that is seeded each time 
+  #'this function is called
   x <- y
   Find_Bodys <- str_locate(Articles$line, "Body")
   StartHere <- which(Find_Bodys[, 1] != "NA") + 1
@@ -79,7 +80,8 @@ measure_sentiment <- function(article_num) {
     mutate(sentiment = positive - negative) %>%
     filter(word != "trump")
   
-  #NOTE: because "trump" is a positive word in the "bing" and "nrc" lexicons, I've removed it from the "bing" and "nrc" sentiment scoring.
+  #'NOTE: because "trump" is a positive word in the "bing" and "nrc" lexicons, 
+  #'I've removed it from the "bing" and "nrc" sentiment scoring.
   
   matched_words_nrc <-
     filter(Article_wdfrq, Article == article_num) %>%
@@ -101,9 +103,9 @@ measure_sentiment <- function(article_num) {
     prop_matched_nrc = nrow(matched_words_nrc) /
       nrow(filter(Article_wdfrq, Article == article_num)),
     
-    #NOTE: I've divided the total sentiment scores by the number of words in the 
-    #article so that I get a per word sentiment and I can compare articles without 
-    #having to worry about the length of the article.
+    #'NOTE: I've divided the total sentiment scores by the number of words in the 
+    #'article so that I get a per word sentiment and I can compare articles without 
+    #'having to worry about the length of the article.
     
     affin_score = sum(matched_words_afinn$sentiment) /
       nrow(filter(Article_wdfrq, Article == article_num)),
