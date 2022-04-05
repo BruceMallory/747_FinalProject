@@ -156,11 +156,11 @@ sntmts_over_time <- function(type, sent_dict, target_word) {
     labs(title=paste("Sentiment of NYTimes articles about H.R.1"), 
          subtitle=paste(" Total of",nrow(sntmnt_in_articles), "articles in", 
                         paste(type, collapse=", "), "\n", 
-                        "Sentiment measured using the", sent_dict, "for each article\n",
+                        "Sentiment measured using the", sent_dict, "for each article (green=positive, red=negative)\n",
                         "Point size based on the proportion of \"", target_word,
                         "\" in each article"))
 }
 
-sntmts_over_time(c("News"), "affin_score", "justice")
+sntmts_over_time(c("News", "Editorial", "Letter", "News"), "afinn_score", "filibuster")
 wdfrq_over_time(c("News"),"justice")
 type <- c("Op-Ed", "Editorial", "Letter", "News")

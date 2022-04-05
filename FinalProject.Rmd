@@ -130,8 +130,8 @@ wordcloud(words = words_used$word, freq = words_used$total, min.freq = 50,
           scale=c(3.5,0.25), colors=brewer.pal(8, "Dark2"))
 
 pos_scores <- left_join(Article_wdfrq, Article_sntmts, by=c("Article", "Type", "Date")) %>% 
-  select(word, Article, Type, Date, n, affin_score) %>% 
-  filter(affin_score>quantile(affin_score)[4]) %>% 
+  select(word, Article, Type, Date, n, afinn_score) %>% 
+  filter(afinn_score>quantile(afinn_score)[4]) %>% 
   group_by(word) %>%
   summarise(total=sum(n)) %>% 
   arrange(desc(total))
@@ -141,8 +141,8 @@ wordcloud(words = pos_scores$word, freq = pos_scores$total, min.freq = 25,
           scale=c(3.5,0.25), colors=brewer.pal(8, "Dark2"))
 
 neg_scores <- left_join(Article_wdfrq, Article_sntmts, by=c("Article", "Type", "Date")) %>% 
-  select(word, Article, Type, Date, n, affin_score) %>% 
-  filter(affin_score<quantile(affin_score)[2]) %>% 
+  select(word, Article, Type, Date, n, afinn_score) %>% 
+  filter(afinn_score<quantile(afinn_score)[2]) %>% 
   group_by(word) %>%
   summarise(total=sum(n)) %>% 
   arrange(desc(total))
@@ -151,7 +151,7 @@ wordcloud(words = neg_scores$word, freq = neg_scores$total, min.freq = 25,
           max.words=200, random.order=FALSE, rot.per=0.35, 
           scale=c(3.5,0.25), colors=brewer.pal(8, "Dark2"))
 
-freq_wrds(affin_score)
+freq_wrds(afinn_score)
 ```
 
 ## D. Displaying data: functions

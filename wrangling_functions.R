@@ -96,7 +96,7 @@ measure_sentiment <- function(article_num) {
     Article = article_num,
     Type = Article_titles$Type[article_num],
     Date = Article_titles$Date[article_num],
-    prop_matched_affin = nrow(matched_words_afinn) /
+    prop_matched_afinn = nrow(matched_words_afinn) /
       nrow(filter(Article_wdfrq, Article == article_num)),
     prop_matched_bing = nrow(matched_words_bing) /
       nrow(filter(Article_wdfrq, Article == article_num)),
@@ -107,17 +107,13 @@ measure_sentiment <- function(article_num) {
     #'article so that I get a per word sentiment and I can compare articles without 
     #'having to worry about the length of the article.
     
-    affin_score = sum(matched_words_afinn$sentiment) /
+    afinn_score = sum(matched_words_afinn$sentiment) /
       nrow(filter(Article_wdfrq, Article == article_num)),
     bing_score = sum(matched_words_bing$sentiment) /
       nrow(filter(Article_wdfrq, Article == article_num)),
     nrc_score = (
       sum(matched_words_nrc$positive) - sum(matched_words_nrc$negative)
     ) /
-      nrow(filter(Article_wdfrq, Article == article_num)),
-    nrc_positive_score = sum(matched_words_nrc$positive) /
-      nrow(filter(Article_wdfrq, Article == article_num)),
-    nrc_negative_score = sum(matched_words_nrc$negative) /
       nrow(filter(Article_wdfrq, Article == article_num)),
     nrc_fear_score = sum(matched_words_nrc$fear) /
       nrow(filter(Article_wdfrq, Article == article_num)),
@@ -149,16 +145,15 @@ initialize_sntmts_df <- function() {
     Article = integer(),
     Type = character(),
     Date = as_datetime(character()),
-    prop_matched_affin = integer(),
+    prop_matched_afinn = integer(),
     prop_matched_bing = integer(),
     prop_matched_nrc = integer(),
-    affin_score = integer(),
+    afinn_score = integer(),
     bing_score = integer(),
     nrc_score = integer(),
-    nrc_positive_score = integer(),
-    nrc_negative_score = integer(),
     nrc_fear_score = integer(),
-    nrc_anger_score = integer()
+    nrc_anger_score = integer(),
+    nrc_joy_score = integer()
   )
   return(df)
 }
